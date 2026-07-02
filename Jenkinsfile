@@ -2,58 +2,63 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'app-backend'
-        CONTAINER_NAME = 'backend-contain'
-        EC2_IP = '13.205.90.64'
+        EC2_IP = '13.235.114.96'
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Clone Backend Code') {
             steps {
-                git branch: 'main',
-                    credentialsId: 'git_creds',
-                    url: 'https://github.com/vijishvk/E-flow-Backend.git'
+                git branch: 'Ikram',
+                    credentialsId: 'github-creds',
+                    url: 'https://github.com/cloudhostingky-alt/E-flow-Backend.git'
             }
         }
 
-        stage('Deploy to EC2') {
+        stage('Clean Old Build') {
             steps {
-                sshagent(['ec2_creds']) {
-                    sh """
-                          ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "
-                          rm -rf /home/ubuntu/backend
-                          mkdir -p /home/ubuntu/backend
-                          cd /home/ubuntu/backend
-                        
+                sh '''
+                docker system prune -f || true
+                '''
+            }
+        }
 
-                          if [ ! -d E-flow-Backend ]; then 
-                            git clone git@github.com:cloudhostingky-alt/E-flow-Backend.git
-                          fi 
-                          
-                           cd E-flow-Backend
-                           git checkout main
-                           git pull origin main
-                        
-                           
-                           docker stop ${CONTAINER_NAME} || true
-                           docker rm ${CONTAINER_NAME} || true
-                           docker rmi ${IMAGE_NAME} || true
-                           docker build -t ${IMAGE_NAME} .
-                           docker run -d -p 3000:3000 --name ${CONTAINER_NAME} ${IMAGE_NAME}
-                        "
-                    """
-                }
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                docker build --no-cache -t eflow-backend-app:latest .
+                '''
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                sh '''
+                docker stop eflow-backend || true
+                docker rm eflow-backend || true
+                '''
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh '''
+                docker run -d \
+                    -p 3000:3000 \
+                    --name eflow-backend \
+                    --restart unless-stopped \
+                    eflow-backend-app:latest
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "Backend deployed successfully"
+            echo "Deployment successful. App running at http://${EC2_IP}:3000"
         }
         failure {
-            echo "Failed"
+            echo "Build failed. Check the logs above."
         }
     }
 }
