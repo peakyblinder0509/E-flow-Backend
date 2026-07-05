@@ -10,7 +10,7 @@ pipeline {
         stage('Clone Backend Code') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'git-cred',
+                    credentialsId: 'git-crd',
                     url: 'https://github.com/cloudhostingky-alt/E-flow-Backend.git'
             }
         }
