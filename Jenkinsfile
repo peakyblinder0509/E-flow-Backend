@@ -11,7 +11,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     credentialsId: 'git-crd',
-                    url: https://github.com/peakyblinder0509/E-flow-Backend.git'
+                    url: 'https://github.com/peakyblinder0509/E-flow-Backend.git'
             }
         }
 
